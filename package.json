@@ -6,7 +6,8 @@
   "scripts": {
     "build": "rimraf ./dist && tsc",
     "start": "node dist/server.js",
-    "dev": "nodemon ./src/server.ts"
+    "dev": "nodemon ./src/server.ts",
+    "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'test/**/*.ts'"
   },
   "repository": {
     "type": "git",
@@ -24,7 +25,10 @@
     "express": "^4.18.1"
   },
   "devDependencies": {
+    "@types/mocha": "^9.1.1",
     "@types/node": "^18.7.14",
+    "axios": "^0.27.2",
+    "mocha": "^10.0.0",
     "nodemon": "^2.0.19",
     "rimraf": "^3.0.2",
     "ts-node": "^10.9.1",
