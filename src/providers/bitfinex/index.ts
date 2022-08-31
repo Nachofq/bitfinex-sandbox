@@ -8,7 +8,7 @@ interface IBFXSubscriptionData {
   event: string;
   channel: string;
   symbol: string;
-  frequency: string;
+  freq: string;
   len: string;
   prec: string;
 }
