@@ -8,6 +8,7 @@ const routes = (app: Express) => {
   app.get("/", generalPurposeController.health);
   app.get("/bfx/test-pair", bitfinexController.testPair);
   app.get("/bfx/pair-tips/:pair", bitfinexController.getTips);
+  app.get("/bfx/place-order", bitfinexController.getEffectivePrice);
 };
 
 export default routes;

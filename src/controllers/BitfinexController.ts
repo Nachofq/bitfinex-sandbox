@@ -50,5 +50,49 @@ class BitfinexController {
       return next(new InternalError(e));
     }
   }
+
+  async getEffectivePrice(
+    request: Request,
+    response: Response,
+    next: NextFunction
+  ) {
+    try {
+      const pair = request.query.pair as string;
+      const type = request.query.type as string;
+      const operation = request.query.operation as string;
+      const amount = parseFloat(request.query.amount as string);
+      const limitPrice = parseFloat(request.query.limitPrice as string);
+
+      console.log({ pair, type, operation, amount });
+      if (!pair || !type || !operation || !amount) {
+        return next(
+          new BadRequest(
+            "Missing parameters. Expected /bfx/place-order?pair=tABCDEF&type=<MARKET|LIMIT>&operation=<BUY|SELL>&amount=<FLOAT>"
+          )
+        );
+      }
+
+      const bfxProvider = new BitfinexProvider();
+      await bfxProvider.connect();
+      bfxProvider.subscribe({
+        event: "subscribe",
+        channel: "book",
+        symbol: pair,
+        freq: "F0",
+        len: "250",
+        prec: "P0",
+      });
+      const result = await bfxProvider.getEffectivePrice({
+        type,
+        operation,
+        amount,
+        ...(limitPrice && { limitPrice }),
+      });
+
+      response.send({ result });
+    } catch (e: any) {
+      return next(new InternalError(e));
+    }
+  }
 }
 export default BitfinexController;
