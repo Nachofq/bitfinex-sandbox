@@ -19,7 +19,7 @@ export class BitfinexProvider {
   channel: string = "";
   channelId: number | null = null;
   orderBook: {
-    lastSnapshot: any;
+    lastSnapshot: { [key: string]: number[] };
     messageCount: number;
   } = { lastSnapshot: {}, messageCount: 0 };
 
@@ -52,6 +52,16 @@ export class BitfinexProvider {
     });
   }
 
+  getOBSnapshotTips() {
+    return new Promise((resolve, _reject) => {
+      const checkBookLoop: () => void = () =>
+        !isEmpty(this.orderBook.lastSnapshot)
+          ? resolve(this.getTipsFromOB())
+          : setTimeout(checkBookLoop);
+      checkBookLoop();
+    });
+  }
+
   private onOpen() {
     this.connected = true;
     console.log("BFX WS connection accepted");
@@ -64,7 +74,6 @@ export class BitfinexProvider {
   private onMessage(msg: WebSocket.MessageEvent) {
     const data = JSON.parse(msg.data.toString());
     if (this.orderBook.messageCount > 0) this.close();
-    console.log(this.orderBook.messageCount);
     if (data.event) console.log("Event:", data);
     if (data.event === "subscribed") {
       this.suscribed = true;
@@ -101,5 +110,16 @@ export class BitfinexProvider {
       }
       return;
     }
+  }
+
+  private getTipsFromOB() {
+    const ob2Array = Object.entries(this.orderBook.lastSnapshot);
+    const bidPrices = ob2Array
+      .filter((priceLevel) => priceLevel[1][1] > 0)
+      .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+    const askPrices = ob2Array
+      .filter((priceLevel) => priceLevel[1][1] < 0)
+      .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+    return { bidTip: bidPrices[0], askTip: askPrices[0] };
   }
 }

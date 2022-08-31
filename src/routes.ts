@@ -6,7 +6,8 @@ const routes = (app: Express) => {
   const generalPurposeController = new GeneralPurposeController();
   const bitfinexController = new BitfinexController();
   app.get("/", generalPurposeController.health);
-  app.get("/bfx", bitfinexController.testPair);
+  app.get("/bfx/test-pair", bitfinexController.testPair);
+  app.get("/bfx/pair-tips/:pair", bitfinexController.getTips);
 };
 
 export default routes;
