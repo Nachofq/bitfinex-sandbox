@@ -12,7 +12,7 @@ class BitfinexController {
         event: "subscribe",
         channel: "book",
         symbol: "tBTCUSD",
-        frequency: "F1",
+        freq: "F0",
         len: "25",
         prec: "P1",
       });
@@ -40,9 +40,9 @@ class BitfinexController {
         event: "subscribe",
         channel: "book",
         symbol: pair,
-        frequency: "F1",
-        len: "25",
-        prec: "P1",
+        freq: "F0",
+        len: "1", // for the tips only need 1 price point on each side
+        prec: "P0",
       });
       const result = await bfxProvider.getOBSnapshotTips();
       return response.send({ result });
