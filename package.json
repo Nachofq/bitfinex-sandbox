@@ -7,7 +7,7 @@
     "build": "rimraf ./dist && tsc",
     "start": "node dist/server.js",
     "dev": "nodemon ./src/server.ts",
-    "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'test/**/*.ts'"
+    "test": "mocha -r ts-node/register 'test/**/*.ts'"
   },
   "repository": {
     "type": "git",
