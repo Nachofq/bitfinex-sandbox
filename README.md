@@ -8,14 +8,10 @@ Please install node and npm package manager. The easiest way is to get nvm and i
 - node version: 16.14.0
 - npm version: 8.3.1
 
-## Required environment variables
-
-- CHALLENGE_PORT: 3000
-
 ## Production start
 
 ```sh
-npm run install
+npm install
 npm run build
 npm run start
 
@@ -24,6 +20,6 @@ npm run start
 ## Development start
 
 ```sh
-npm run install
+npm install
 npm run dev
 ```

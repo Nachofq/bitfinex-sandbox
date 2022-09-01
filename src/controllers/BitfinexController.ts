@@ -1,8 +1,7 @@
 import { BitfinexProvider } from "../providers/bitfinex";
-
 import { Request, Response, NextFunction } from "express";
-import InternalError from "../exceptions/InternalError";
 import BadRequest from "../exceptions/BadRequest";
+import { logger } from "../utils/logger";
 class BitfinexController {
   async testPair(_request: Request, response: Response, next: NextFunction) {
     try {
@@ -16,11 +15,11 @@ class BitfinexController {
         len: "25",
         prec: "P1",
       });
-      const result = await bfxProvider.getOBSnapshotTips();
+      const result = await bfxProvider.getOBSnapshot();
       bfxProvider.close();
       return response.send({ result });
     } catch (e: any) {
-      return next(new InternalError(e));
+      return next(e);
     }
   }
 
@@ -28,11 +27,12 @@ class BitfinexController {
     try {
       const { pair } = request.params;
       if (!pair) {
-        return next(new BadRequest("Pair must be defined"));
+        throw new BadRequest("Pair must be defined");
       }
       if (!pair.match("^t[A-Z]{6,}$")) {
-        return next(new BadRequest("Wrong format. expected tABCDEF"));
+        throw new BadRequest("Wrong format. expected tABCDEF");
       }
+      logger.info(`Tip Request: ${pair}`);
 
       const bfxProvider = new BitfinexProvider();
       await bfxProvider.connect();
@@ -47,7 +47,7 @@ class BitfinexController {
       const result = await bfxProvider.getOBSnapshotTips();
       return response.send({ result });
     } catch (e: any) {
-      return next(new InternalError(e));
+      return next(e);
     }
   }
 
@@ -63,14 +63,19 @@ class BitfinexController {
       const amount = parseFloat(request.query.amount as string);
       const limitPrice = parseFloat(request.query.limitPrice as string);
 
-      console.log({ pair, type, operation, amount });
       if (!pair || !type || !operation || !amount) {
-        return next(
-          new BadRequest(
-            "Missing parameters. Expected /bfx/place-order?pair=tABCDEF&type=<MARKET|LIMIT>&operation=<BUY|SELL>&amount=<FLOAT>"
-          )
+        throw new BadRequest(
+          "Missing parameters. Expected /bfx/place-order?pair=tABCDEF&type=<MARKET>&operation=<BUY|SELL>&amount=<FLOAT>"
         );
       }
+
+      logger.info(
+        `${
+          type[0] + type.slice(1).toLowerCase()
+        } Order: ${operation} | ${pair} | amount: ${amount} ${
+          limitPrice ? `| limitPrice: ${limitPrice}` : ""
+        } `
+      );
 
       const bfxProvider = new BitfinexProvider();
       await bfxProvider.connect();
@@ -91,7 +96,7 @@ class BitfinexController {
 
       response.send({ result });
     } catch (e: any) {
-      return next(new InternalError(e));
+      return next(e);
     }
   }
 }
