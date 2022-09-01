@@ -2,6 +2,7 @@ import { NextFunction, Request, Response, ErrorRequestHandler } from "express";
 import BaseException from "../exceptions/BaseException";
 import InternalError from "../exceptions/InternalError";
 import PageNotFoundError from "../exceptions/NotFound";
+import { logger } from "../utils/logger";
 
 export const errorHandler = (
   error: ErrorRequestHandler,
@@ -12,7 +13,7 @@ export const errorHandler = (
   if (error) {
     const errorInstance =
       error instanceof BaseException ? error : new InternalError(error);
-
+    logger.error(JSON.stringify(error));
     return response
       .status(errorInstance.getStatus())
       .json(errorInstance.getMessage());

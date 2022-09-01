@@ -1,14 +1,6 @@
-import { NextFunction, Request, Response } from "express";
-import InternalError from "../exceptions/InternalError";
-
+import { Request, Response } from "express";
 class GeneralPurposeController {
-  async health(_request: Request, response: Response, next: NextFunction) {
-    try {
-      throw new InternalError();
-    } catch (e: any) {
-      return next(new InternalError(e));
-    }
-
+  async health(_request: Request, response: Response) {
     return response.json({ status: "ok" });
   }
 }
