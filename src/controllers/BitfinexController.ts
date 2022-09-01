@@ -1,6 +1,7 @@
 import { BitfinexProvider } from "../providers/bitfinex";
 import { Request, Response, NextFunction } from "express";
 import BadRequest from "../exceptions/BadRequest";
+import { logger } from "../utils/logger";
 class BitfinexController {
   async testPair(_request: Request, response: Response, next: NextFunction) {
     try {
@@ -31,6 +32,7 @@ class BitfinexController {
       if (!pair.match("^t[A-Z]{6,}$")) {
         throw new BadRequest("Wrong format. expected tABCDEF");
       }
+      logger.info(`Tip Request: ${pair}`);
 
       const bfxProvider = new BitfinexProvider();
       await bfxProvider.connect();
@@ -66,6 +68,14 @@ class BitfinexController {
           "Missing parameters. Expected /bfx/place-order?pair=tABCDEF&type=<MARKET>&operation=<BUY|SELL>&amount=<FLOAT>"
         );
       }
+
+      logger.info(
+        `${
+          type[0] + type.slice(1).toLowerCase()
+        } Order: ${operation} | ${pair} | amount: ${amount} ${
+          limitPrice ? `| limitPrice: ${limitPrice}` : ""
+        } `
+      );
 
       const bfxProvider = new BitfinexProvider();
       await bfxProvider.connect();

@@ -3,6 +3,7 @@ import { isEmpty } from "../../utils/dictUtils";
 import { weightedAverageDecimal } from "../../utils/mathUtils";
 import Decimal from "decimal.js";
 import BadRequest from "../../exceptions/BadRequest";
+import { logger } from "../../utils/logger";
 
 const BFX_WEBSOCKET_ADDRESS = "wss://api-pub.bitfinex.com/ws/2";
 
@@ -33,6 +34,7 @@ export class BitfinexProvider {
         this.wsServer.onerror = (err) => this.onError(err);
         this.wsServer.onopen = () => resolve(this.onOpen());
       } catch (e) {
+        logger.error(e);
         reject(e);
       }
     });
@@ -120,18 +122,18 @@ export class BitfinexProvider {
 
   private onOpen() {
     this.connected = true;
-    console.log("BFX WS connection accepted");
+    logger.info(`Bitfinex ws provider connected`);
   }
 
   private onError(err: WebSocket.ErrorEvent) {
-    console.log("WS Error:", err.message);
+    logger.error("WS Error:", err.message);
   }
 
   private onMessage(msg: WebSocket.MessageEvent) {
     try {
       const data = JSON.parse(msg.data.toString());
       if (this.orderBook.messageCount > 0) this.close();
-      if (data.event) console.log("Event:", data);
+      if (data.event) logger.info("Bfx ws event:", JSON.stringify(data));
       if (data.event === "subscribed") {
         this.suscribed = true;
         this.channel = data.channel;
@@ -150,11 +152,6 @@ export class BitfinexProvider {
 
   private handleBookData(bfxData: any) {
     try {
-      //TODO replace any for proper interface
-      // data[0]: Channel ID
-      // data[1]: sequence or book data.
-      // First ws message: data[1] = ['channelId', number[][]] orderbook snapshot
-      // Following messages: data[1] = ['channelId', number[]] orderbook single price update
       let channelId = bfxData[0];
       let data = bfxData[1];
       if (data === "hb") return;
@@ -180,7 +177,9 @@ export class BitfinexProvider {
     try {
       const bidPrices = this.getSortedBidsFromOB();
       const askPrices = this.getSortedAsksFromOB();
-      return { bidTip: bidPrices[0], askTip: askPrices[0] };
+      const result = { bidTip: bidPrices[0], askTip: askPrices[0] };
+      logger.info("Tips retrieved: ", JSON.stringify(result));
+      return result;
     } catch (e) {
       throw e;
     }
@@ -241,10 +240,6 @@ export class BitfinexProvider {
           currentPrice: orders[priceLevelCounter][0],
         }) // AND if currentPrice level is above/below limitPrice (sell/buy respectively)
       ) {
-        // console.log("----------------"); // TODO migrate to logger
-        // console.log("Non Filled:", nonFilledAmount);
-        // console.log("Current level amount", orders[priceLevelCounter][2]);
-        // console.log("Counter:", priceLevelCounter);
         if (nonFilledAmount.gt(orders[priceLevelCounter][2])) {
           filledAmountsAtPrice.push([
             orders[priceLevelCounter][0],
@@ -263,13 +258,16 @@ export class BitfinexProvider {
           nonFilledAmount = new Decimal(0);
         }
       }
-
+      const effectivePrice = weightedAverageDecimal(filledAmountsAtPrice);
+      logger.info(
+        `Market Ordert executed: ${operation} | requested: ${amount} | filled: ${filledAmount} | bookVolume: ${totalBookVolume} | effPrice: ${effectivePrice}`
+      );
       return {
         operation,
         amount,
         filledAmount,
         totalBookVolume,
-        effectivePrice: weightedAverageDecimal(filledAmountsAtPrice),
+        effectivePrice,
         debug: { orders },
       };
     } catch (e: any) {
