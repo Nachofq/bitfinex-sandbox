@@ -1,6 +1,7 @@
 import WebSocket from "ws";
 import { isEmpty } from "../../utils/dictUtils";
-import { weightedAverage } from "../../utils/mathUtils";
+import { weightedAverageDecimal } from "../../utils/mathUtils";
+import Decimal from "decimal.js";
 
 const BFX_WEBSOCKET_ADDRESS = "wss://api-pub.bitfinex.com/ws/2";
 
@@ -163,53 +164,51 @@ export class BitfinexProvider {
     }
     if (operation !== "BUY" && operation !== "SELL")
       return `Action ${operation} not supported`;
-    console.log({ limitPrice });
-    let orders;
+
+    let orders: Decimal[][];
+    let limitPriceDecimal: Decimal | undefined;
+    if (limitPrice) limitPriceDecimal = new Decimal(limitPrice);
 
     if (operation === "BUY") {
       orders = this.getSortedAsksFromOB();
-      if (limitPrice && limitPrice < orders[0][0])
+      if (limitPriceDecimal && limitPriceDecimal.lt(orders[0][0]))
         return `Limit price ${limitPrice} can not be less than ask tip ${orders[0][0]}`;
     } else {
       orders = this.getSortedBidsFromOB();
-      if (limitPrice && limitPrice > orders[0][0])
+      if (limitPriceDecimal && limitPriceDecimal.gt(orders[0][0]))
         return `Limit price ${limitPrice} can not be higher than bid tip ${orders[0][0]}`;
     }
 
-    const totalBookVolume = orders.reduce(
-      (partialSum, a) => partialSum + a[2],
-      0
-    );
-    // if (amount > Math.abs(totalVolume))
-    //   return `Not enough liquidity. Current volume in orderbook ${Math.abs(
-    //     totalVolume
-    //   ).toFixed(2)}. Buy amount ${amount}`;
+    let totalBookVolume = new Decimal(0);
+    for (let i = 0; i < orders.length; i++) {
+      totalBookVolume = totalBookVolume.add(orders[i][2]);
+    }
 
-    let nonFilledAmount: number = amount;
-    let filledAmount: number = 0;
-    let filledAmountsAtPrice: number[][] = [];
+    let nonFilledAmount = new Decimal(amount);
+    let filledAmount = new Decimal(0);
+    let filledAmountsAtPrice: Decimal[][] = [];
     let priceLevelCounter = 0;
 
     while (
-      nonFilledAmount !== 0 && // stop if nonFilled === 0 AND
-      priceLevelCounter < orders.length && // stop if the orderbook has no more price levels AND
+      !nonFilledAmount.eq(0) && // Continue if there some more amount to fill AND
+      priceLevelCounter < orders.length && // If there are still price levels to consume amount from
       !this.limitPriceCrossedOver({
-        limitPrice,
+        limitPrice: limitPriceDecimal,
         operation,
         currentPrice: orders[priceLevelCounter][0],
-      }) // stop if limitPrice is set and current price level is Higher/Lower (Ask/Bid)
+      }) // AND if currentPrice level is above/below limitPrice (sell/buy respectively)
     ) {
-      // console.log("----------------");
-      // console.log("Non Filled:", nonFilledAmount);
-      // console.log("Current level amount", orders[priceLevelCounter][2]);
-      // console.log("Counter:", priceLevelCounter);
-      if (nonFilledAmount > orders[priceLevelCounter][2]) {
+      console.log("----------------");
+      console.log("Non Filled:", nonFilledAmount);
+      console.log("Current level amount", orders[priceLevelCounter][2]);
+      console.log("Counter:", priceLevelCounter);
+      if (nonFilledAmount.gt(orders[priceLevelCounter][2])) {
         filledAmountsAtPrice.push([
           orders[priceLevelCounter][0],
           orders[priceLevelCounter][2],
         ]);
-        nonFilledAmount -= orders[priceLevelCounter][2];
-        filledAmount += orders[priceLevelCounter][2];
+        nonFilledAmount = nonFilledAmount.sub(orders[priceLevelCounter][2]);
+        filledAmount = filledAmount.add(orders[priceLevelCounter][2]);
         priceLevelCounter += 1;
       } else {
         // when nonFilled is less than current priceLevel
@@ -217,8 +216,8 @@ export class BitfinexProvider {
           orders[priceLevelCounter][0],
           nonFilledAmount,
         ]);
-        filledAmount += nonFilledAmount;
-        nonFilledAmount = 0;
+        filledAmount = filledAmount.add(nonFilledAmount);
+        nonFilledAmount = new Decimal(0);
       }
     }
 
@@ -227,7 +226,7 @@ export class BitfinexProvider {
       amount,
       filledAmount,
       totalBookVolume,
-      effectivePrice: weightedAverage(filledAmountsAtPrice),
+      effectivePrice: weightedAverageDecimal(filledAmountsAtPrice),
       debug: { orders },
     };
   }
@@ -237,7 +236,11 @@ export class BitfinexProvider {
     return ob2Array
       .filter((priceLevel) => priceLevel[1][1] > 0)
       .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
-      .map((priceLevel) => [parseFloat(priceLevel[0]), ...priceLevel[1]]);
+      .map((priceLevel) => [
+        new Decimal(priceLevel[0]),
+        new Decimal(priceLevel[1][0]),
+        new Decimal(priceLevel[1][1]),
+      ]);
   }
 
   private getSortedAsksFromOB() {
@@ -246,9 +249,9 @@ export class BitfinexProvider {
       .filter((priceLevel) => priceLevel[1][1] < 0)
       .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
       .map((priceLevel) => [
-        parseFloat(priceLevel[0]),
-        priceLevel[1][0],
-        Math.abs(priceLevel[1][1]),
+        new Decimal(priceLevel[0]),
+        new Decimal(priceLevel[1][0]),
+        new Decimal(Math.abs(priceLevel[1][1])),
       ]);
   }
 
@@ -257,12 +260,14 @@ export class BitfinexProvider {
     currentPrice,
     operation,
   }: {
-    limitPrice?: number;
-    currentPrice: number;
+    limitPrice?: Decimal;
+    currentPrice: Decimal;
     operation: string;
   }) {
-    if (!limitPrice) return true;
-    if (operation === "BUY") return limitPrice < currentPrice;
-    if (operation === "SELL") return limitPrice > currentPrice;
+    if (!limitPrice) {
+      return false; // if limitPrice is not present, limitPriceCrossedOver is never true.
+    }
+    if (operation === "BUY") return limitPrice.lt(currentPrice);
+    if (operation === "SELL") return limitPrice.gt(currentPrice);
   }
 }
