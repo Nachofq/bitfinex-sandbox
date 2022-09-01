@@ -12,7 +12,7 @@ class BitfinexController {
         event: "subscribe",
         channel: "book",
         symbol: "tBTCUSD",
-        freq: "F0",
+        freq: "P0",
         len: "25",
         prec: "P1",
       });
@@ -63,11 +63,10 @@ class BitfinexController {
       const amount = parseFloat(request.query.amount as string);
       const limitPrice = parseFloat(request.query.limitPrice as string);
 
-      console.log({ pair, type, operation, amount });
       if (!pair || !type || !operation || !amount) {
         return next(
           new BadRequest(
-            "Missing parameters. Expected /bfx/place-order?pair=tABCDEF&type=<MARKET|LIMIT>&operation=<BUY|SELL>&amount=<FLOAT>"
+            "Missing parameters. Expected /bfx/place-order?pair=tABCDEF&type=<MARKET>&operation=<BUY|SELL>&amount=<FLOAT>"
           )
         );
       }
