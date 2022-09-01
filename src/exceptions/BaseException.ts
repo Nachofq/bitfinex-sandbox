@@ -28,8 +28,6 @@ class BaseException implements IBaseException {
     config: IExceptionConfig = {},
     debug: any = {}
   ) {
-    console.log("BASE", message, config);
-
     this.status = status;
     this.message = message;
     this.config = config;

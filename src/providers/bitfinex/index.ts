@@ -198,10 +198,10 @@ export class BitfinexProvider {
         currentPrice: orders[priceLevelCounter][0],
       }) // AND if currentPrice level is above/below limitPrice (sell/buy respectively)
     ) {
-      console.log("----------------");
-      console.log("Non Filled:", nonFilledAmount);
-      console.log("Current level amount", orders[priceLevelCounter][2]);
-      console.log("Counter:", priceLevelCounter);
+      // console.log("----------------"); // TODO migrate to logger
+      // console.log("Non Filled:", nonFilledAmount);
+      // console.log("Current level amount", orders[priceLevelCounter][2]);
+      // console.log("Counter:", priceLevelCounter);
       if (nonFilledAmount.gt(orders[priceLevelCounter][2])) {
         filledAmountsAtPrice.push([
           orders[priceLevelCounter][0],
