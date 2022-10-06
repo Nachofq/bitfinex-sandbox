@@ -1,3 +1,15 @@
+## Objective
+
+ Use Express framework to set up the server.
+ The API will expose two endpoints:
+  - One that receives a pair name, and retrieves the tips of the orderbook (i.e. the
+better prices for bid-ask). Both the total amount and prices.
+  - Other endpoint that is called with the pair name, the operation type (buy/sell) and
+the amount to be traded. Should return the effective price that will result if the
+order is executed (i.e. evaluate Market Depth).
+  - In the second endpoint, include a parameter to set a limit for the effective price and
+retrieves the maximum order size that could be executed.
+
 ## Required global packages
 
 Please install node and npm package manager. The easiest way is to get nvm and install the required node version, npm version will be automatically installed.
