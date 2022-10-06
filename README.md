@@ -1,5 +1,3 @@
-# Membrane Challenge
-
 ## Required global packages
 
 Please install node and npm package manager. The easiest way is to get nvm and install the required node version, npm version will be automatically installed.
